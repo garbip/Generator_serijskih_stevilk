@@ -1,3 +1,8 @@
+/*
+Gregor B.
+11.2025
+DN1 POKS
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -43,7 +48,7 @@ int main(void) {
             uuid[out++] = hex32[i];
         }
         uuid[out] = '\0';
-        
+
         //printf("hex 32: %s\n", hex32);
         //printf("uuid:   %s\n", uuid);
         uint32_t crc = crc32_compute(uuid);
