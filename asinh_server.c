@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
             }
             if (buf[0] == 'G' && buf[1] == 'E' && buf[2] == 'T' && buf[3] == '\0') {
                 char response[256] = "Serial number data";
-                FILE *fp = popen("./1xuuid", "r");
+                FILE *fp = popen("./1xuuid", "r"); 
                 if (fp != NULL) {
                     if (fgets(response, sizeof(response), fp) != NULL) {
                         // response now contains the output
