@@ -1,6 +1,3 @@
-/* Asynchronous UDP server: can send and receive at any time. */
-/* Usage: ./server2 <port> */
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -9,10 +6,76 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/select.h>
+#include <time.h>
+#include <stdint.h>
+#include <inttypes.h>
 
 void error(const char *msg) {
     perror(msg);
     exit(1);
+}
+
+uint32_t crc32_compute(const char *data) {
+    uint32_t crc = 0xFFFFFFFFu;
+    while (*data) {
+        crc ^= (uint8_t)*data++;
+        for (int i = 0; i < 8; ++i) {
+            crc = (crc >> 1) ^ (0xEDB88320u & (-(int)(crc & 1)));
+        }
+    }
+    return crc ^ 0xFFFFFFFFu;
+}
+
+void save_counter(int j) {
+    FILE *file = fopen("counter.txt", "w");
+    if (file) {
+        fprintf(file, "%d", j);
+        fclose(file);
+    } else {
+        perror("Error saving counter");
+    }
+}
+
+int load_counter(void) {
+    FILE *file = fopen("counter.txt", "r");
+    int j = 0;
+    if (file) {
+        if (fscanf(file, "%d", &j) != 1) {
+            j = 0;  // Reset to 0 if read fails
+        }
+        fclose(file);
+    }
+    return j;
+}
+
+void generate_uuid_with_serial(char *output, size_t output_size) {
+    const char hex_chars[] = "0123456789abcdef";
+    char hex32[33];    
+    char uuid[37];
+
+    for (int i = 0; i < 32; ++i) {
+        hex32[i] = hex_chars[rand() & 0xF]; 
+    }
+
+    hex32[12] = '4';
+    hex32[16] = hex_chars[(rand() & 0x3) | 0x8];
+
+    int out = 0;
+    for (int i = 0; i < 32; ++i) {
+        if (out == 8 || out == 13 || out == 18 || out == 23) {
+            uuid[out++] = '-';
+        }
+        uuid[out++] = hex32[i];
+    }
+    uuid[out] = '\0';
+
+    uint32_t crc = crc32_compute(uuid);
+    int j = load_counter();
+    
+    snprintf(output, output_size, "%08d %s %08" PRIx32, j+1, uuid, crc);
+    
+    j++;
+    save_counter(j);
 }
 
 int main(int argc, char *argv[]) {
@@ -20,7 +83,7 @@ int main(int argc, char *argv[]) {
     struct sockaddr_in server, from;
     socklen_t fromlen;
     char buf[1024];
-    int client_known = 0;  /* ali že poznamo clienta? */
+    int client_known = 0;
     struct sockaddr_in client;
     socklen_t clientlen;
 
@@ -28,6 +91,8 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Usage: %s <port>\n", argv[0]);
         exit(1);
     }
+
+    srand((unsigned)time(NULL));
 
     sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock < 0) error("Opening socket");
@@ -60,14 +125,12 @@ int main(int argc, char *argv[]) {
             error("select");
         }
 
-        /* Podatki z omrežja (od clienta) */
         if (FD_ISSET(sock, &readfds)) {
             bzero(buf, sizeof(buf));
             n = recvfrom(sock, buf, sizeof(buf), 0,
                          (struct sockaddr *)&from, &fromlen);
             if (n < 0) error("recvfrom");
 
-            /* Če še nimamo clienta, si ga zapomnimo */
             if (!client_known) {
                 client = from;
                 clientlen = fromlen;
@@ -82,15 +145,10 @@ int main(int argc, char *argv[]) {
                 break;
             }
             if (buf[0] == 'G' && buf[1] == 'E' && buf[2] == 'T' && buf[3] == '\0') {
-                char response[256] = "Serial number data";
-                FILE *fp = popen("./1xuuid", "r"); 
-                if (fp != NULL) {
-                    if (fgets(response, sizeof(response), fp) != NULL) {
-                        // response now contains the output
-                    }
-                    pclose(fp);
-                }
-                sendto(sock, response, strlen(response) + 1, 0,
+                char serial_uuid[128];
+                generate_uuid_with_serial(serial_uuid, sizeof(serial_uuid));
+                
+                sendto(sock, serial_uuid, strlen(serial_uuid) + 1, 0,
                     (struct sockaddr *)&from, fromlen);
             }
             else {
@@ -100,7 +158,6 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        /* Vnos s tipkovnice: pošlji clientu, če ga poznamo */
         if (FD_ISSET(STDIN_FILENO, &readfds)) {
             bzero(buf, sizeof(buf));
             if (fgets(buf, sizeof(buf), stdin) == NULL) {
@@ -108,7 +165,6 @@ int main(int argc, char *argv[]) {
                 break;
             }
 
-            /* Odstrani \n */
             size_t len = strlen(buf);
             if (len > 0 && buf[len - 1] == '\n') {
                 buf[len - 1] = '\0';
