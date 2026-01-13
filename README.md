@@ -31,4 +31,4 @@ Testiranje komunikacije med strežnikom in odjemalcem ter generiranje UUID v4 se
 
 ## Naloga 3: Analiza in poročilo
 
-Upravljanje z več nitmi, [`server`] (./server.c), procesira več uporabnikov (niti) enega za drugim tako da zaklepa dostop do programa. Na server pa se povezujemo s [`client`] (./client.c).
+Upravljanje z več nitmi, [`server`] (./server.c), procesira več uporabnikov (niti) enega za drugim tako da zaklepa dostop do programa. Na server pa se povezujemo s [`client`] (./client.c). 
