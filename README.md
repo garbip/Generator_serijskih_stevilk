@@ -29,7 +29,6 @@ Testiranje komunikacije med strežnikom in odjemalcem ter generiranje UUID v4 se
 ./aclient
 ```
 
-## Naloga 3: Analiza in poročilo
 
 ## Naloga 3: Analiza in poročilo
 
