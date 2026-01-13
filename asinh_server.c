@@ -138,18 +138,62 @@ int main(int argc, char *argv[]) {
                 printf("Client connected (address stored).\n");
             }
 
+
             printf("Client: %s\n", buf);
 
             if (buf[0] == 'X' && buf[1] == '\0')  {
                 printf("Client sent X, exiting.\n");
                 break;
             }
-            if (buf[0] == 'G' && buf[1] == 'E' && buf[2] == 'T' && buf[3] == '\0') {
+            else if (buf[0] == 'G' && buf[1] == 'E' && buf[2] == 'T' && buf[3] == '\0') { 
                 char serial_uuid[128];
                 generate_uuid_with_serial(serial_uuid, sizeof(serial_uuid));
-                
                 sendto(sock, serial_uuid, strlen(serial_uuid) + 1, 0,
-                    (struct sockaddr *)&from, fromlen);
+                       (struct sockaddr *)&from, fromlen);
+                
+                // Wait for "prejeto" acknowledgment
+                bzero(buf, sizeof(buf));
+                n = recvfrom(sock, buf, sizeof(buf), 0,
+                             (struct sockaddr *)&from, &fromlen);
+                if (n < 0) error("recvfrom");
+                
+                // Parse "prejeto" message and CRC32
+                char text[64], received_crc[16];
+                int parsed = sscanf(buf, "%63s %15s", text, received_crc);
+                
+                printf("DEBUG text:%s crc:%s\n", text, received_crc);
+
+                if (parsed == 2 && strcmp(text, "PREJETO") == 0) {
+                    // Calculate CRC32 of "prejeto"
+                    uint32_t calculated_crc = crc32_compute("PREJETO");
+                    
+                    // Compare CRCs (case-insensitive hex comparison)
+                    char calculated_crc_hex[16];
+                    snprintf(calculated_crc_hex, sizeof(calculated_crc_hex), "%08x", calculated_crc);
+                    
+                    
+
+                    if (strcasecmp(calculated_crc_hex, received_crc) == 0) {
+                        printf("CRC32 verified successfully for 'prejeto'\n");
+                        // Counter already incremented in generate_uuid_with_serial
+                    } else {
+                        printf("CRC32 mismatch! Expected: %s, Received: %s\n", calculated_crc_hex, received_crc);
+                        const char error_msg[] = "NAPAKA 4900B4DB";
+                        sendto(sock, error_msg, strlen(error_msg) + 1, 0,
+                               (struct sockaddr *)&from, fromlen);
+                        // Decrement counter since verification failed
+                        int j = load_counter();
+                        save_counter(j - 1);
+                    }
+                } else {
+                    printf("Invalid acknowledgment format\n");
+                    const char error_msg[] = "NAPAKA 4900B4DB";
+                    sendto(sock, error_msg, strlen(error_msg) + 1, 0,
+                           (struct sockaddr *)&from, fromlen);
+                    // Decrement counter since verification failed
+                    int j = load_counter();
+                    save_counter(j - 1);
+                }
             }
             else {
                 char response[] = "Napacen ukaz";

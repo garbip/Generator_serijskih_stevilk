@@ -1,9 +1,34 @@
-# Generator serijskih številk
+# Generator Serijskih Številk
 
-## 1. Generiranje serijske številke in njenega zaporednega števila
-Program [uuid.c](./uuid.c), generira poljubno število uuid v4 serijskih številk z njihovo zaporedno številko.
+Projekt za generiranje UUID v4 serijskih številk z zaporednimi številkami in CRC32 kontrolnimi vsotami. Naloga je razdeljena na tri dele.
 
-## 2. Pridobivanje številk iz serverja
-Za testiranje poženemo program [aserver](./aserver.c) in [aclient](./aclient.c). Iz klientovega terminala podamo zahtevo **GET**, server nam nato odgovori z nakjlučno generirano uuid v4 številko in njenim zaporednim številom
+## Naloga 1: Samostojni Generator UUID
 
-## 3.
+**Program:** [`uuid.c`](./uuid.c)
+
+Generator poljubnega števila UUID v4 serijskih številk z zaporednimi številkami in CRC32 kontrolnimi vsotami.
+
+**Kompilacija:**
+```bash
+gcc -o uuid uuid.c
+```
+
+## Naloga 2: Strežnik in odjemalec
+
+**Programi:** [`aserver`](./aserver.c), [`aclient`](./aclient.c)
+
+Testiranje komunikacije med strežnikom in odjemalcem ter generiranje UUID v4 serijskih številk z zaporednimi številkami.
+
+**Zagon strežnika:**
+```bash
+./aserver
+```
+
+**Zagon odjemalca:**
+```bash
+./aclient
+```
+
+## Naloga 3: Analiza in poročilo
+
+Analiza delovanja sistema, poročilo o morebitnih napakah ter predlogi za izboljšave.
